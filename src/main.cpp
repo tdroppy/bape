@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 
-#define MAX_BUILDINGS 100
 #define PLAYER_SPEED 250
 #define CELL_SIZE 240
 
@@ -75,7 +74,7 @@ struct Cell {
 };
 std::vector<std::vector<Cell>> grid;
 
-bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>> obj1, 
+bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>> obj1, //AABB 
     std::tuple<float, float, float, float, std::tuple<float, float>> obj2) {
   return (std::get<0>(obj1) < std::get<2>(obj2)
           && std::get<2>(obj1) > std::get<0>(obj2)
@@ -95,6 +94,7 @@ bool checkSameCellCollision(bapeObj* obj) {
 
   for (int i = 0; i < grid[gx][gy].cellObjects.size(); i++) {
     if (obj != grid[gx][gy].cellObjects[i]) {
+      //std::cout << "Checking: " << obj->getName() << " -> " << grid[gx][gy].cellObjects[i]->getName() << std::endl;
       bool col = isCollision(obj->getPos(), grid[gx][gy].cellObjects[i]->getPos());
       if (col) { count++; }
     }
@@ -103,9 +103,17 @@ bool checkSameCellCollision(bapeObj* obj) {
   return count > 0;
 }
 
+int createRandomObj(bapeObj* plr, int count) { // returns the new amount of random objects created
+  std::tuple<float, float> cntrPos = std::get<4>(plr->getPos());
+  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 40, 40, 
+      raylib::RAYWHITE, std::to_string(count));
+  return ++count;
+}
+
 int main(void) {
   const int SCREEN_WIDTH = 720;
   const int SCREEN_HEIGHT = 720;
+  int randObjCreated = 0;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
 
@@ -135,7 +143,6 @@ int main(void) {
       int gy = std::floor((std::get<1>(std::get<4>(bapeObj::objectList[i]->getPos()))) / CELL_SIZE);
       grid[gx][gy].cellObjects.push_back(bapeObj::objectList[i]);
 
-      std::cout << bapeObj::objectList[i]->getName() << " cell location: [" << gx << "]  [" << gy << "]\n"; 
     }
 
     if (IsKeyDown(KEY_RIGHT)) {
@@ -162,21 +169,21 @@ int main(void) {
         player.setColor(raylib::YELLOW);
       }else { player.setColor(raylib::RED); } 
     }
-    if (IsKeyDown(KEY_SPACE)) {
-      for (int i = 0; i < bapeObj::objectList.size(); i++) {
-        std::cout << bapeObj::objectList[i] << "      ";
-      }
-      std::cout << std::endl;
+    if (IsKeyReleased(KEY_SPACE)) {
+      std::cout << randObjCreated << std::endl;
+    }
+    if (IsKeyReleased(KEY_C)) {
+      randObjCreated = createRandomObj(&player, randObjCreated);
     }
 
     window.BeginDrawing();
       window.ClearBackground(raylib::GREEN);
       
       BeginMode2D(camera);
-        
-      brownShit.drawObj();
-      idk.drawObj(); 
-      player.drawObj();
+
+      for (int i = 0; i < bapeObj::objectList.size(); i++) {
+        bapeObj::objectList[i]->drawObj();
+      }
 
       EndMode2D();
       DrawFPS(10, 10);
