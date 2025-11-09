@@ -9,7 +9,7 @@
 #include <string>
 
 #define PLAYER_SPEED 350
-#define CELL_SIZE 120
+#define CELL_SIZE 60
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
@@ -77,6 +77,7 @@ std::vector<bapeObj*> bapeObj::objectList;
 
 struct Cell {
   std::vector<bapeObj*> cellObjects;
+  int frameUsed = -1;
 };
 std::vector<std::vector<Cell>> grid;
 
@@ -89,8 +90,6 @@ bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>
       );
 }
 
-// this will not check for nearby objects in other cells, so this is pretty inaccurate
-// adding a full implementation of this later
 bool checkSameCellCollision(bapeObj* obj) {
   int gx = std::floor((std::get<0>(std::get<4>(obj->getPos()))) / CELL_SIZE);
   int gy = std::floor((std::get<1>(std::get<4>(obj->getPos()))) / CELL_SIZE);
@@ -100,6 +99,7 @@ bool checkSameCellCollision(bapeObj* obj) {
 
   for (int i = 0; i < grid[gx][gy].cellObjects.size(); i++) {
     if (obj != grid[gx][gy].cellObjects[i]) {
+      //std::cout << obj->getName() << " -> " << grid[gx][gy].cellObjects[i]->getName() << std::endl;
       bool col = isCollision(obj->getPos(), grid[gx][gy].cellObjects[i]->getPos());
       if (col) { count++; }
     }
@@ -115,7 +115,9 @@ int createRandomObj(bapeObj* plr, int count) { // returns the new amount of rand
   return ++count;
 }
 
-void propagateGrid() {
+void propagateGrid(int &currentFrame) {
+    currentFrame++;
+
     for (int i = 0; i < bapeObj::objectList.size(); i++) {
       float objX = std::get<0>(bapeObj::objectList[i]->getPos());
       float objY = std::get<1>(bapeObj::objectList[i]->getPos());
@@ -129,13 +131,20 @@ void propagateGrid() {
 
       for (int cx = cellX; cx <= cellMaxX; cx++) {
         for (int cy = cellY; cy <= cellMaxY; cy++) {
-          grid[cx][cy].cellObjects.push_back(bapeObj::objectList[i]);
+          Cell &c = grid[cx][cy];
+          if (c.frameUsed != currentFrame) { // only clears a cell once per frame
+            c.cellObjects.clear();
+            c.frameUsed = currentFrame;
+          }
+          c.cellObjects.push_back(bapeObj::objectList[i]);
+          //grid[cx][cy].cellObjects.push_back(bapeObj::objectList[i]);
         }
       }
     }
 }
 
 int main(void) {
+  int currentFrame = 0;
   int randObjCreated = 0;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
@@ -161,37 +170,32 @@ int main(void) {
     std::tuple pos = player.getPos();
     float deltaTime = GetFrameTime();
 
-    propagateGrid();
+    propagateGrid(currentFrame);
+    for (auto obj : bapeObj::objectList) {
+      if (checkSameCellCollision(obj)) {
+        obj->setColor(raylib::PURPLE);
+      } else {
+        obj->setColor(raylib::RAYWHITE);
+      }
+    }
 
     if (IsKeyDown(KEY_RIGHT)) {
       player.moveXInc();
-      if (checkSameCellCollision(&player)) {
-        player.setColor(raylib::YELLOW);
-      } else { player.setColor(raylib::RED); }
     }
     if (IsKeyDown(KEY_LEFT)) {
       player.moveXDec();
-      if (checkSameCellCollision(&player)) {
-        player.setColor(raylib::YELLOW);
-      }else { player.setColor(raylib::RED); } 
     }
     if (IsKeyDown(KEY_UP)) {
       player.moveYInc();
-      if (checkSameCellCollision(&player)) {
-        player.setColor(raylib::YELLOW);
-      }else { player.setColor(raylib::RED); } 
     }
     if (IsKeyDown(KEY_DOWN)) {
       player.moveYDec();
-      if (checkSameCellCollision(&player)) {
-        player.setColor(raylib::YELLOW);
-      }else { player.setColor(raylib::RED); } 
     }
     if (IsKeyReleased(KEY_SPACE)) {
       std::cout << randObjCreated << std::endl;
     }
     if (IsKeyReleased(KEY_C)) {
-      for (int i = 0; i < 1000; i++) {
+      for (int i = 0; i < 1; i++) {
 
       randObjCreated = createRandomObj(&player, randObjCreated);
       }
@@ -211,11 +215,11 @@ int main(void) {
       
     window.EndDrawing();
 
-    for (int i = 0; i < grid.size(); i++) {
-      for (int j = 0; j < grid[i].size(); j++) {
-        grid[i][j].cellObjects.clear();
-      }
-    }
+    //for (int i = 0; i < grid.size(); i++) {
+    //  for (int j = 0; j < grid[i].size(); j++) {
+    //    grid[i][j].cellObjects.clear();
+    //  }
+    //}
   }
 
 
