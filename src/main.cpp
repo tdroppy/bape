@@ -10,6 +10,8 @@
 
 #define PLAYER_SPEED 350
 #define CELL_SIZE 120
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
 struct objCoord {
   float minX;
@@ -56,6 +58,10 @@ class bapeObj {
       return objectName;
     }
 
+    std::tuple<float, float> getDimensions() {
+      return std::make_tuple(rect.width, rect.height);
+    }
+
     std::tuple<float, float, float, float, std::tuple<float, float>> getPos() {
       std::tuple<float, float> center(rect.x + (rect.width / 2.0f), rect.y + (rect.height) / 2.0f);
       return std::make_tuple(rect.x, rect.y, (rect.x + rect.width), (rect.y + rect.height), center);
@@ -94,7 +100,6 @@ bool checkSameCellCollision(bapeObj* obj) {
 
   for (int i = 0; i < grid[gx][gy].cellObjects.size(); i++) {
     if (obj != grid[gx][gy].cellObjects[i]) {
-      //std::cout << "Checking: " << obj->getName() << " -> " << grid[gx][gy].cellObjects[i]->getName() << std::endl;
       bool col = isCollision(obj->getPos(), grid[gx][gy].cellObjects[i]->getPos());
       if (col) { count++; }
     }
@@ -105,14 +110,32 @@ bool checkSameCellCollision(bapeObj* obj) {
 
 int createRandomObj(bapeObj* plr, int count) { // returns the new amount of random objects created
   std::tuple<float, float> cntrPos = std::get<4>(plr->getPos());
-  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 40, 40, 
+  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 200, 200, 
       raylib::RAYWHITE, std::to_string(count));
   return ++count;
 }
 
+void propagateGrid() {
+    for (int i = 0; i < bapeObj::objectList.size(); i++) {
+      float objX = std::get<0>(bapeObj::objectList[i]->getPos());
+      float objY = std::get<1>(bapeObj::objectList[i]->getPos());
+      float objMaxX = objX + std::get<0>(bapeObj::objectList[i]->getDimensions());
+      float objMaxY = objY + std::get<1>(bapeObj::objectList[i]->getDimensions());
+    
+      int cellX = std::max(0, (int)floor(objX / CELL_SIZE));
+      int cellY = std::max(0, (int)floor(objY / CELL_SIZE));
+      int cellMaxX = std::min((int)floor(SCREEN_WIDTH / CELL_SIZE), (int)ceil(objMaxX / CELL_SIZE));
+      int cellMaxY = std::min((int)floor(SCREEN_HEIGHT / CELL_SIZE), (int)ceil(objMaxY / CELL_SIZE));
+
+      for (int cx = cellX; cx <= cellMaxX; cx++) {
+        for (int cy = cellY; cy <= cellMaxY; cy++) {
+          grid[cx][cy].cellObjects.push_back(bapeObj::objectList[i]);
+        }
+      }
+    }
+}
+
 int main(void) {
-  const int SCREEN_WIDTH = 1920;
-  const int SCREEN_HEIGHT = 1080;
   int randObjCreated = 0;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
@@ -138,12 +161,7 @@ int main(void) {
     std::tuple pos = player.getPos();
     float deltaTime = GetFrameTime();
 
-    for (int i = 0; i < bapeObj::objectList.size(); i++) {
-      int gx = std::floor((std::get<0>(std::get<4>(bapeObj::objectList[i]->getPos()))) / CELL_SIZE);
-      int gy = std::floor((std::get<1>(std::get<4>(bapeObj::objectList[i]->getPos()))) / CELL_SIZE);
-      grid[gx][gy].cellObjects.push_back(bapeObj::objectList[i]);
-
-    }
+    propagateGrid();
 
     if (IsKeyDown(KEY_RIGHT)) {
       player.moveXInc();
@@ -173,7 +191,10 @@ int main(void) {
       std::cout << randObjCreated << std::endl;
     }
     if (IsKeyReleased(KEY_C)) {
+      for (int i = 0; i < 1000; i++) {
+
       randObjCreated = createRandomObj(&player, randObjCreated);
+      }
     }
 
     window.BeginDrawing();
