@@ -8,8 +8,8 @@
 #include <iostream>
 #include <string>
 
-#define PLAYER_SPEED 250
-#define CELL_SIZE 240
+#define PLAYER_SPEED 350
+#define CELL_SIZE 120
 
 struct objCoord {
   float minX;
@@ -111,25 +111,25 @@ int createRandomObj(bapeObj* plr, int count) { // returns the new amount of rand
 }
 
 int main(void) {
-  const int SCREEN_WIDTH = 720;
-  const int SCREEN_HEIGHT = 720;
+  const int SCREEN_WIDTH = 1920;
+  const int SCREEN_HEIGHT = 1080;
   int randObjCreated = 0;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
 
-  grid.resize(4); //TODO hard coded gotta fix that
-  for (int i = 0; i < 3; i++) {
-    grid[i].resize(4);
+  grid.resize((SCREEN_WIDTH / CELL_SIZE) + 1); 
+  for (int i = 0; i < (SCREEN_WIDTH / CELL_SIZE); i++) {
+    grid[i].resize((SCREEN_HEIGHT / CELL_SIZE) + 1);
   }
 
   bapeObj brownShit{240, 250, 80, 80, raylib::BROWN, "BrownSHIT"};
-  bapeObj player = {400, 280, 40, 40, raylib::RED, "Player"};
   bapeObj idk = {500, 250, 80, 80, raylib::PINK, "yuh"};
+  bapeObj player = {400, 280, 40, 40, raylib::RED, "Player"};
 
 
   raylib::Camera2D camera;
   std::tuple pos = player.getPos();
-  camera.target = raylib::Vector2( 360, 360 );
+  camera.target = raylib::Vector2( SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 );
   camera.offset = raylib::Vector2( SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f );
   camera.rotation = 0.0f;
   camera.zoom = 1.0f;
