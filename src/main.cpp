@@ -13,18 +13,17 @@
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
-struct objCoord {
-  float minX;
-  float minY;
-  float maxX;
-  float maxY;
+struct objBounds {
+  float leftSide;
+  float bottomSide;
+  float rightSide;
+  float topSide;
 };
-
 
 class bapeObj {
   private:
     raylib::Rectangle rect;
-    objCoord rectord;
+    objBounds rectord;
     raylib::Color color;
     std::string objectName;
   public:
@@ -62,9 +61,18 @@ class bapeObj {
       return std::make_tuple(rect.width, rect.height);
     }
 
-    std::tuple<float, float, float, float, std::tuple<float, float>> getPos() {
-      std::tuple<float, float> center(rect.x + (rect.width / 2.0f), rect.y + (rect.height) / 2.0f);
-      return std::make_tuple(rect.x, rect.y, (rect.x + rect.width), (rect.y + rect.height), center);
+    std::tuple<float, float> getCenter() {
+      return std::make_tuple(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
+    }
+
+    //std::tuple<float, float, float, float, std::tuple<float, float>> getPos() {
+    //  std::tuple<float, float> center(rect.x + (rect.width / 2.0f), rect.y + (rect.height) / 2.0f);
+    //  return std::make_tuple(rect.x, rect.y, (rect.x + rect.width), (rect.y + rect.height), center);
+    //}
+    
+    objBounds getPos() {
+      objBounds bounds = {rect.x, (rect.y + rect.height), (rect.x + rect.width), rect.y};
+      return bounds;
     }
 
     ~bapeObj() {
@@ -81,35 +89,67 @@ struct Cell {
 };
 std::vector<std::vector<Cell>> grid;
 
-bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>> obj1, //AABB 
-    std::tuple<float, float, float, float, std::tuple<float, float>> obj2) {
-  return (std::get<0>(obj1) < std::get<2>(obj2)
-          && std::get<2>(obj1) > std::get<0>(obj2)
-          && std::get<1>(obj1) < std::get<3>(obj2)
-          && std::get<3>(obj1) > std::get<1>(obj2)
+enum CollisionDirection { NONE, TOP, BOTTOM, LEFT, RIGHT };
+
+CollisionDirection isCollision(const objBounds obj1, const objBounds obj2) {
+   
+  bool collision = (
+      obj1.leftSide < obj2.rightSide &&
+      obj1.rightSide > obj2.leftSide &&
+      obj1.topSide < obj2.bottomSide &&
+      obj1.bottomSide > obj2.topSide
       );
+
+  if (!collision) {
+    return NONE;
+  }
+
+  float tcol = obj2.bottomSide - obj1.topSide;
+  float bcol = obj1.bottomSide - obj2.topSide;
+  float lcol = obj1.rightSide - obj2.leftSide;
+  float rcol = obj2.rightSide - obj1.leftSide;
+
+  float mpen = std::min({tcol, bcol, lcol, rcol});
+  if (mpen == tcol) return TOP;
+  if (mpen == bcol) return BOTTOM;
+  if (mpen == lcol) return LEFT;
+  if (mpen == rcol) return RIGHT;
+
+  return NONE;
 }
 
+//bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>> obj1, //AABB 
+//    std::tuple<float, float, float, float, std::tuple<float, float>> obj2) {
+//  // 0: Left / 1: Up / 2: Right / 3: Down
+//  return (std::get<0>(obj1) < std::get<2>(obj2)
+//          && std::get<2>(obj1) > std::get<0>(obj2)
+//          && std::get<1>(obj1) < std::get<3>(obj2)
+//          && std::get<3>(obj1) > std::get<1>(obj2)
+//      );
+//}
 bool checkCellCollision(bapeObj* obj) {
   int count = 0;
 
-  float objX = std::get<0>(obj->getPos());
-  float objY = std::get<1>(obj->getPos());
-  float objMaxX = objX + std::get<0>(obj->getDimensions());
-  float objMaxY = objY + std::get<1>(obj->getDimensions());
+  objBounds bounds = obj->getPos(); 
+
+  float objX = bounds.leftSide; 
+  float objY = bounds.topSide;
+  float objMaxX = bounds.rightSide;
+  float objMaxY = bounds.bottomSide; 
   
   int cellX = (int)floor(objX / CELL_SIZE);
   int cellY = (int)floor(objY / CELL_SIZE);
 
   int cellMaxX = (int)floor(objMaxX / CELL_SIZE);
   int cellMaxY = (int)floor(objMaxY / CELL_SIZE);
+
   
   for (int tempcx = cellX; tempcx <= cellMaxX; tempcx++) {
     for (int tempcy = cellY; tempcy <= cellMaxY; tempcy++) {
       for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
         if (obj != grid[tempcx][tempcy].cellObjects[i]) {
-          bool col = isCollision(obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
-          if (col) { count++; }
+          CollisionDirection col = isCollision(obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
+          if (col != NONE) { count++; }
         }
       }
     }
@@ -119,8 +159,8 @@ bool checkCellCollision(bapeObj* obj) {
 }
 
 int createRandomObj(bapeObj* plr, int count) { // returns the new amount of random objects created
-  std::tuple<float, float> cntrPos = std::get<4>(plr->getPos());
-  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 200, 200, 
+  std::tuple<float, float> cntrPos = plr->getCenter();
+  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 80, 80, 
       raylib::RAYWHITE, std::to_string(count));
   return ++count;
 }
@@ -129,10 +169,11 @@ void propagateGrid(int &currentFrame) {
     currentFrame++;
 
     for (int i = 0; i < bapeObj::objectList.size(); i++) {
-      float objX = std::get<0>(bapeObj::objectList[i]->getPos());
-      float objY = std::get<1>(bapeObj::objectList[i]->getPos());
-      float objMaxX = objX + std::get<0>(bapeObj::objectList[i]->getDimensions());
-      float objMaxY = objY + std::get<1>(bapeObj::objectList[i]->getDimensions());
+      objBounds bounds = bapeObj::objectList[i]->getPos();
+      float objX = bounds.leftSide; 
+      float objY = bounds.topSide;
+      float objMaxX = bounds.rightSide; 
+      float objMaxY = bounds.bottomSide; 
     
       int cellX = (int)floor(objX / CELL_SIZE);
       int cellY = (int)floor(objY / CELL_SIZE);
@@ -172,17 +213,16 @@ int main(void) {
 
 
   raylib::Camera2D camera;
-  std::tuple pos = player.getPos();
   camera.target = raylib::Vector2( SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 );
   camera.offset = raylib::Vector2( SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f );
   camera.rotation = 0.0f;
   camera.zoom = 1.0f;
   while(!WindowShouldClose()) {
     // before drawing, need to handle updates
-    std::tuple pos = player.getPos();
     float deltaTime = GetFrameTime();
-
+    
     propagateGrid(currentFrame);
+    
     for (auto obj : bapeObj::objectList) {
       if (checkCellCollision(obj)) {
         obj->setColor(raylib::PURPLE);
@@ -223,7 +263,7 @@ int main(void) {
       }
 
       if ((showCellGrid % 2) == 0) {
-        for (int i = 0; i < 1920; i += 60) {
+        for (int i = 0; i < 1920; i += CELL_SIZE) {
            DrawLine(i, 0, i, 1080, raylib::RED);
            DrawLine(0, i, 1920, i, raylib::RED);
         }
@@ -235,11 +275,6 @@ int main(void) {
       
     window.EndDrawing();
 
-    //for (int i = 0; i < grid.size(); i++) {
-    //  for (int j = 0; j < grid[i].size(); j++) {
-    //    grid[i][j].cellObjects.clear();
-    //  }
-    //}
   }
 
 
