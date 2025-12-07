@@ -90,21 +90,31 @@ bool isCollision(std::tuple<float, float, float, float, std::tuple<float, float>
       );
 }
 
-bool checkSameCellCollision(bapeObj* obj) {
-  int gx = std::floor((std::get<0>(std::get<4>(obj->getPos()))) / CELL_SIZE);
-  int gy = std::floor((std::get<1>(std::get<4>(obj->getPos()))) / CELL_SIZE);
+bool checkCellCollision(bapeObj* obj) {
   int count = 0;
-  gx = std::clamp(gx, 0, int(grid.size() - 1));
-  gy = std::clamp(gy, 0, int(grid[0].size() - 1));
 
-  for (int i = 0; i < grid[gx][gy].cellObjects.size(); i++) {
-    if (obj != grid[gx][gy].cellObjects[i]) {
-      //std::cout << obj->getName() << " -> " << grid[gx][gy].cellObjects[i]->getName() << std::endl;
-      bool col = isCollision(obj->getPos(), grid[gx][gy].cellObjects[i]->getPos());
-      if (col) { count++; }
+  float objX = std::get<0>(obj->getPos());
+  float objY = std::get<1>(obj->getPos());
+  float objMaxX = objX + std::get<0>(obj->getDimensions());
+  float objMaxY = objY + std::get<1>(obj->getDimensions());
+  
+  int cellX = (int)floor(objX / CELL_SIZE);
+  int cellY = (int)floor(objY / CELL_SIZE);
+
+  int cellMaxX = (int)floor(objMaxX / CELL_SIZE);
+  int cellMaxY = (int)floor(objMaxY / CELL_SIZE);
+  
+  for (int tempcx = cellX; tempcx <= cellMaxX; tempcx++) {
+    for (int tempcy = cellY; tempcy <= cellMaxY; tempcy++) {
+      for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
+        if (obj != grid[tempcx][tempcy].cellObjects[i]) {
+          bool col = isCollision(obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
+          if (col) { count++; }
+        }
+      }
     }
   }
-
+  
   return count > 0;
 }
 
@@ -124,10 +134,11 @@ void propagateGrid(int &currentFrame) {
       float objMaxX = objX + std::get<0>(bapeObj::objectList[i]->getDimensions());
       float objMaxY = objY + std::get<1>(bapeObj::objectList[i]->getDimensions());
     
-      int cellX = std::max(0, (int)floor(objX / CELL_SIZE));
-      int cellY = std::max(0, (int)floor(objY / CELL_SIZE));
-      int cellMaxX = std::min((int)floor(SCREEN_WIDTH / CELL_SIZE), (int)ceil(objMaxX / CELL_SIZE));
-      int cellMaxY = std::min((int)floor(SCREEN_HEIGHT / CELL_SIZE), (int)ceil(objMaxY / CELL_SIZE));
+      int cellX = (int)floor(objX / CELL_SIZE);
+      int cellY = (int)floor(objY / CELL_SIZE);
+
+      int cellMaxX = (int)floor(objMaxX / CELL_SIZE);
+      int cellMaxY = (int)floor(objMaxY / CELL_SIZE);
 
       for (int cx = cellX; cx <= cellMaxX; cx++) {
         for (int cy = cellY; cy <= cellMaxY; cy++) {
@@ -173,7 +184,7 @@ int main(void) {
 
     propagateGrid(currentFrame);
     for (auto obj : bapeObj::objectList) {
-      if (checkSameCellCollision(obj)) {
+      if (checkCellCollision(obj)) {
         obj->setColor(raylib::PURPLE);
       } else {
         obj->setColor(raylib::RAYWHITE);
