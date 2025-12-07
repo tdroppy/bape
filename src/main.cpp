@@ -25,16 +25,20 @@ class bapeObj {
     raylib::Rectangle rect;
     objBounds rectord;
     raylib::Color color;
+    raylib::Color defColor;
     std::string objectName;
+    int weight;
   public:
     static std::vector<bapeObj*> objectList;
 
-    bapeObj(float x, float y, float width, float height, Color colorInput, std::string objectName) 
+    bapeObj(float x, float y, float width, float height, Color colorInput, std::string objectName, int weight = 1) 
      : rect(x, y, width, height), color(colorInput)
     {
       rectord = {x, y, x + width, y + height};
       objectList.push_back(this);
       this->objectName = objectName;
+      this->weight = weight;
+      defColor = color;
     } 
 
     void drawObj() {
@@ -43,6 +47,10 @@ class bapeObj {
 
     void setColor(Color colorInput) {
       color = colorInput;
+    }
+
+    void resetColorToDefault() {
+      color = defColor;
     }
 
     void moveXInc() {rect.x += PLAYER_SPEED * raylib::Window::GetFrameTime();}
@@ -65,11 +73,10 @@ class bapeObj {
       return std::make_tuple(rect.x + (rect.width / 2), rect.y + (rect.height / 2));
     }
 
-    //std::tuple<float, float, float, float, std::tuple<float, float>> getPos() {
-    //  std::tuple<float, float> center(rect.x + (rect.width / 2.0f), rect.y + (rect.height) / 2.0f);
-    //  return std::make_tuple(rect.x, rect.y, (rect.x + rect.width), (rect.y + rect.height), center);
-    //}
-    
+    int getWeight() {
+      return weight;
+    }
+
     objBounds getPos() {
       objBounds bounds = {rect.x, (rect.y + rect.height), (rect.x + rect.width), rect.y};
       return bounds;
@@ -127,7 +134,7 @@ CollisionDirection isCollision(const objBounds obj1, const objBounds obj2) {
 //          && std::get<3>(obj1) > std::get<1>(obj2)
 //      );
 //}
-bool checkCellCollision(bapeObj* obj) {
+CollisionDirection checkCellCollision(bapeObj* obj) {
   int count = 0;
 
   objBounds bounds = obj->getPos(); 
@@ -149,13 +156,13 @@ bool checkCellCollision(bapeObj* obj) {
       for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
         if (obj != grid[tempcx][tempcy].cellObjects[i]) {
           CollisionDirection col = isCollision(obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
-          if (col != NONE) { count++; }
+          if (col != NONE) { return col; }
         }
       }
     }
   }
   
-  return count > 0;
+  return NONE;
 }
 
 int createRandomObj(bapeObj* plr, int count) { // returns the new amount of random objects created
@@ -207,9 +214,15 @@ int main(void) {
     grid[i].resize((SCREEN_HEIGHT / CELL_SIZE) + 2);
   }
 
-  bapeObj brownShit{240, 250, 80, 80, raylib::BROWN, "BrownSHIT"};
-  bapeObj idk = {500, 250, 80, 80, raylib::PINK, "yuh"};
+  bapeObj testBlock1 = {240, 250, 80, 80, raylib::BROWN, "testBlock1", -1};
+  bapeObj testBlock2 = {500, 250, 80, 80, raylib::PINK, "testBlock2", -1};
   bapeObj player = {400, 280, 40, 40, raylib::RED, "Player"};
+
+  // borders
+  bapeObj borderLeft = {1, 1, 40, SCREEN_HEIGHT - 2, raylib::Color {40, 40, 40, 255}, "borderLeft", -1}; 
+  bapeObj borderRight = {SCREEN_WIDTH - 41, 1, 40, SCREEN_HEIGHT - 2, raylib::Color {40, 40, 40, 255}, "borderRight", -1}; 
+  bapeObj borderTop = {41, 1, SCREEN_WIDTH - 82, 40, raylib::Color {40, 40, 40, 255}, "borderTop", -1}; 
+  bapeObj borderBottom = {41, SCREEN_HEIGHT - 41, SCREEN_WIDTH - 82, 40, raylib::Color {40, 40, 40, 255}, "borderBottom", -1}; 
 
 
   raylib::Camera2D camera;
@@ -224,10 +237,25 @@ int main(void) {
     propagateGrid(currentFrame);
     
     for (auto obj : bapeObj::objectList) {
-      if (checkCellCollision(obj)) {
+      CollisionDirection col = checkCellCollision(obj); 
+      if (col != NONE) {
         obj->setColor(raylib::PURPLE);
+        if (obj->getWeight() != -1) {
+          if (col == LEFT) {
+            obj->moveXDec();
+          }
+          if (col == RIGHT) {
+            obj->moveXInc();
+          }
+          if (col == TOP) {
+            obj->moveYDec();
+          }
+          if (col == BOTTOM) {
+            obj->moveYInc();
+          }
+        }
       } else {
-        obj->setColor(raylib::RAYWHITE);
+        obj->resetColorToDefault();
       }
     }
 
@@ -254,7 +282,7 @@ int main(void) {
     }
 
     window.BeginDrawing();
-      window.ClearBackground(raylib::GREEN);
+      window.ClearBackground(raylib::Color {70, 70, 70, 255});
       
       BeginMode2D(camera);
 
