@@ -146,12 +146,13 @@ void propagateGrid(int &currentFrame) {
 int main(void) {
   int currentFrame = 0;
   int randObjCreated = 0;
+  int showCellGrid = 1;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
 
-  grid.resize((SCREEN_WIDTH / CELL_SIZE) + 1); 
+  grid.resize((SCREEN_WIDTH / CELL_SIZE) + 2); 
   for (int i = 0; i < (SCREEN_WIDTH / CELL_SIZE); i++) {
-    grid[i].resize((SCREEN_HEIGHT / CELL_SIZE) + 1);
+    grid[i].resize((SCREEN_HEIGHT / CELL_SIZE) + 2);
   }
 
   bapeObj brownShit{240, 250, 80, 80, raylib::BROWN, "BrownSHIT"};
@@ -193,11 +194,11 @@ int main(void) {
     }
     if (IsKeyReleased(KEY_SPACE)) {
       std::cout << randObjCreated << std::endl;
+      showCellGrid++;
     }
     if (IsKeyReleased(KEY_C)) {
       for (int i = 0; i < 1; i++) {
-
-      randObjCreated = createRandomObj(&player, randObjCreated);
+        randObjCreated = createRandomObj(&player, randObjCreated);
       }
     }
 
@@ -210,6 +211,14 @@ int main(void) {
         bapeObj::objectList[i]->drawObj();
       }
 
+      if ((showCellGrid % 2) == 0) {
+        for (int i = 0; i < 1920; i += 60) {
+           DrawLine(i, 0, i, 1080, raylib::RED);
+           DrawLine(0, i, 1920, i, raylib::RED);
+        }
+      }
+
+     
       EndMode2D();
       DrawFPS(10, 10);
       
