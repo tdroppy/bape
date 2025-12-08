@@ -98,7 +98,7 @@ std::vector<std::vector<Cell>> grid;
 
 enum CollisionDirection { NONE, TOP, BOTTOM, LEFT, RIGHT };
 
-CollisionDirection isCollision(const objBounds obj1, const objBounds obj2) {
+CollisionDirection isCollision(const objBounds obj1, const objBounds obj2) { // TODO: maybe handle collision handling in here?
    
   bool collision = (
       obj1.leftSide < obj2.rightSide &&
@@ -134,9 +134,9 @@ CollisionDirection isCollision(const objBounds obj1, const objBounds obj2) {
 //          && std::get<3>(obj1) > std::get<1>(obj2)
 //      );
 //}
-CollisionDirection checkCellCollision(bapeObj* obj) {
+std::vector<CollisionDirection> checkCellCollision(bapeObj* obj) {
   int count = 0;
-
+  std::vector<CollisionDirection> dlist;
   objBounds bounds = obj->getPos(); 
 
   float objX = bounds.leftSide; 
@@ -156,18 +156,18 @@ CollisionDirection checkCellCollision(bapeObj* obj) {
       for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
         if (obj != grid[tempcx][tempcy].cellObjects[i]) {
           CollisionDirection col = isCollision(obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
-          if (col != NONE) { return col; }
+          if (col != NONE) { dlist.push_back(col); }
         }
       }
     }
   }
   
-  return NONE;
+  return dlist;
 }
 
 int createRandomObj(bapeObj* plr, int count) { // returns the new amount of random objects created
-  std::tuple<float, float> cntrPos = plr->getCenter();
-  bapeObj* obj = new bapeObj(std::get<0>(cntrPos), std::get<1>(cntrPos), 80, 80, 
+  Vector2 mousePos = GetMousePosition();
+  bapeObj* obj = new bapeObj(mousePos.x, mousePos.y, 80, 80, 
       raylib::RAYWHITE, std::to_string(count));
   return ++count;
 }
@@ -208,10 +208,12 @@ int main(void) {
   int showCellGrid = 1;
   raylib::Window window(SCREEN_WIDTH, SCREEN_HEIGHT, "bape");
 
+  int columns = ((SCREEN_WIDTH / CELL_SIZE) + 2);
+  int rows = ((SCREEN_HEIGHT / CELL_SIZE) + 2);
 
-  grid.resize((SCREEN_WIDTH / CELL_SIZE) + 2); 
-  for (int i = 0; i < (SCREEN_WIDTH / CELL_SIZE); i++) {
-    grid[i].resize((SCREEN_HEIGHT / CELL_SIZE) + 2);
+  grid.resize(columns); 
+  for (int i = 0; i < columns; i++) {
+    grid[i].resize(rows);
   }
 
   bapeObj testBlock1 = {240, 250, 80, 80, raylib::BROWN, "testBlock1", -1};
@@ -237,28 +239,21 @@ int main(void) {
     propagateGrid(currentFrame);
     
     for (auto obj : bapeObj::objectList) {
-      CollisionDirection col = checkCellCollision(obj); 
-      if (col != NONE) {
-        obj->setColor(raylib::PURPLE);
-        if (obj->getWeight() != -1) {
-          if (col == LEFT) {
-            obj->moveXDec();
-          }
-          if (col == RIGHT) {
-            obj->moveXInc();
-          }
-          if (col == TOP) {
-            obj->moveYDec();
-          }
-          if (col == BOTTOM) {
-            obj->moveYInc();
-          }
-        }
-      } else {
-        obj->resetColorToDefault();
+      std::vector<CollisionDirection> col = checkCellCollision(obj);
+      int weight = obj->getWeight();
+      if (std::find(col.begin(), col.end(), LEFT) != col.end()) {
+        if (weight != -1) { obj->moveXDec(); }
+      }
+      if (std::find(col.begin(), col.end(), RIGHT) != col.end()) {
+        if (weight != -1) { obj->moveXInc(); }
+      }
+      if (std::find(col.begin(), col.end(), TOP) != col.end()) {
+        if (weight != -1) { obj->moveYDec(); }
+      }
+      if (std::find(col.begin(), col.end(), BOTTOM) != col.end()) {
+        if (weight != -1) { obj->moveYInc(); }
       }
     }
-
     if (IsKeyDown(KEY_RIGHT)) {
       player.moveXInc();
     }
@@ -275,7 +270,7 @@ int main(void) {
       std::cout << randObjCreated << std::endl;
       showCellGrid++;
     }
-    if (IsKeyReleased(KEY_C)) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       for (int i = 0; i < 1; i++) {
         randObjCreated = createRandomObj(&player, randObjCreated);
       }
