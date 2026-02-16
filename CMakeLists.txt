@@ -14,11 +14,15 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/RobLoach/raylib-cpp.git 
   GIT_TAG master
 )
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 FetchContent_MakeAvailable(raylib-cpp)
+add_executable(bape 
+  src/main.cpp
+  src/Collision.cpp
+  src/BapeObjects.cpp)
 
-add_executable(bape src/main.cpp)
-
+target_include_directories(bape PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/")
 target_link_libraries(bape PRIVATE raylib)
 
 # Only needed if RAYLIB_INCLUDE_DIRS exists (optional)
