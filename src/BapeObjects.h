@@ -20,16 +20,16 @@ struct objBounds {
 
 class bapeObj {
 private:
-  raylib::Rectangle rect;
+  raylib::Rectangle rect; // holds position
   objBounds rectord;
   raylib::Color color;
   raylib::Color defColor;
   std::string objectName;
   int weight;
-  raylib::Vector2 velocity = {0, 0};
-  raylib::Vector2 acceleration = {0, 0};
 
 public:
+  float horizontalVelocity = 0;
+  float verticleVelocity = 0;
   static std::vector<bapeObj *> objectList;
 
   bapeObj(float x, float y, float width, float height, Color colorInput,
@@ -48,13 +48,19 @@ public:
 
   void resetColorToDefault() { color = defColor; }
 
-  void moveXInc() { rect.x += PLAYER_SPEED * raylib::Window::GetFrameTime(); }
+  void moveHorizontally(float vel) {
+    rect.x += vel * raylib::Window::GetFrameTime();
+  }
+  void moveHorizontally() {
+    rect.x += horizontalVelocity * raylib::Window::GetFrameTime();
+  }
 
-  void moveYInc() { rect.y -= PLAYER_SPEED * raylib::Window::GetFrameTime(); }
-
-  void moveXDec() { rect.x -= PLAYER_SPEED * raylib::Window::GetFrameTime(); }
-
-  void moveYDec() { rect.y += PLAYER_SPEED * raylib::Window::GetFrameTime(); }
+  void moveVertically(float vel) {
+    rect.y += ((0 - vel) * raylib::Window::GetFrameTime());
+  }
+  void moveVertically() {
+    rect.y += ((0 - this->verticleVelocity) * raylib::Window::GetFrameTime());
+  }
 
   std::string getName() { return objectName; }
 

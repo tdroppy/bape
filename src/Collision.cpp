@@ -97,28 +97,31 @@ void propagateGrid(int &currentFrame) {
   }
 }
 
+// TODO: accelerate inverted velocity when object is INSIDE another
 void handleObjectReactions() {
   for (auto obj : bapeObj::objectList) {
     std::vector<CollisionDirection> col = checkCellCollision(obj);
     int weight = obj->getWeight();
     if (std::find(col.begin(), col.end(), LEFT) != col.end()) {
-      if (weight != -1) {
-        obj->moveXDec();
+      if (weight != 0) {
+        obj->horizontalVelocity = (0 - (obj->horizontalVelocity + 3));
+        // obj->moveHorizontally(0 - (obj->horizontalVelocity));
       }
     }
     if (std::find(col.begin(), col.end(), RIGHT) != col.end()) {
-      if (weight != -1) {
-        obj->moveXInc();
+      if (weight != 0) {
+        // obj->moveHorizontally(0 - (obj->horizontalVelocity));
+        obj->horizontalVelocity = (0 - (obj->horizontalVelocity - 3));
       }
     }
     if (std::find(col.begin(), col.end(), TOP) != col.end()) {
-      if (weight != -1) {
-        obj->moveYDec();
+      if (weight != 0) {
+        obj->verticleVelocity = (0 - (obj->verticleVelocity + 3));
       }
     }
     if (std::find(col.begin(), col.end(), BOTTOM) != col.end()) {
-      if (weight != -1) {
-        obj->moveYInc();
+      if (weight != 0) {
+        obj->verticleVelocity = (0 - (obj->verticleVelocity - 3));
       }
     }
   }

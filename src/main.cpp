@@ -1,5 +1,6 @@
+#include "BapeObjects.h"
 #include "Collision.h"
-#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <math.h>
 #include <string>
@@ -31,31 +32,31 @@ int main(void) {
   std::cout << "BAPE: Starting Initialization.." << std::endl;
   std::cout << "BAPE: Spawning Test Objects!" << std::endl;
 
-  bapeObj testBlock1 = {240, 250, 80, 80, raylib::BROWN, "testBlock1", -1};
-  bapeObj testBlock2 = {500, 250, 80, 80, raylib::PINK, "testBlock2", -1};
+  bapeObj testBlock1 = {240, 250, 80, 80, raylib::BROWN, "testBlock1", 1};
+  bapeObj testBlock2 = {500, 250, 80, 80, raylib::PINK, "testBlock2", 1};
 
   std::cout << "BAPE: Spawning Borders!" << std::endl;
   // borders
   bapeObj borderLeft = {
       1, 1, 40, SCREEN_HEIGHT - 2, raylib::Color{40, 40, 40, 255}, "borderLeft",
-      -1};
+      0};
   bapeObj borderRight = {SCREEN_WIDTH - 41,
                          1,
                          40,
                          SCREEN_HEIGHT - 2,
                          raylib::Color{40, 40, 40, 255},
                          "borderRight",
-                         -1};
+                         0};
   bapeObj borderTop = {
       41,          1, SCREEN_WIDTH - 82, 40, raylib::Color{40, 40, 40, 255},
-      "borderTop", -1};
+      "borderTop", 0};
   bapeObj borderBottom = {41,
                           SCREEN_HEIGHT - 41,
                           SCREEN_WIDTH - 82,
                           40,
                           raylib::Color{40, 40, 40, 255},
                           "borderBottom",
-                          -1};
+                          0};
   bapeObj player = {400, 280, 40, 40, raylib::RED, "Player"};
   raylib::Camera2D camera;
   camera.target = raylib::Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
@@ -68,19 +69,25 @@ int main(void) {
 
     propagateGrid(currentFrame);
 
-    handleObjectReactions();
-
     if (IsKeyDown(KEY_RIGHT)) {
-      player.moveXInc();
+      if (player.horizontalVelocity < 300) {
+        player.horizontalVelocity += 3;
+      }
     }
     if (IsKeyDown(KEY_LEFT)) {
-      player.moveXDec();
+      if (player.horizontalVelocity > -300) {
+        player.horizontalVelocity -= 3;
+      }
     }
     if (IsKeyDown(KEY_UP)) {
-      player.moveYInc();
+      if (player.verticleVelocity < 300) {
+        player.verticleVelocity += 3;
+      }
     }
     if (IsKeyDown(KEY_DOWN)) {
-      player.moveYDec();
+      if (player.verticleVelocity > -300) {
+        player.verticleVelocity -= 3;
+      }
     }
     if (IsKeyReleased(KEY_SPACE)) {
       std::cout << randObjCreated << std::endl;
@@ -92,6 +99,15 @@ int main(void) {
       }
     }
 
+    // test velocity case
+    for (int i = 0; i < bapeObj::objectList.size(); i++) {
+      bapeObj::objectList[i]->moveHorizontally();
+      bapeObj::objectList[i]->horizontalVelocity *= 0.999;
+      bapeObj::objectList[i]->moveVertically();
+      bapeObj::objectList[i]->verticleVelocity *= 0.999;
+    }
+
+    handleObjectReactions();
     window.BeginDrawing();
     window.ClearBackground(raylib::Color{70, 70, 70, 255});
 
@@ -108,6 +124,12 @@ int main(void) {
       }
     }
 
+    std::string velReading =
+        "Current Velocity: \nH: " +
+        std::to_string(std::fabs(player.horizontalVelocity)) +
+        "\nV: " + std::to_string(std::fabs(player.verticleVelocity));
+
+    RLAPI::DrawText(velReading.c_str(), 1700, 10, 20, raylib::RED);
     EndMode2D();
     DrawFPS(10, 10);
 
