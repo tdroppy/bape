@@ -17,10 +17,16 @@ struct Cell {
 };
 
 enum CollisionDirection { NONE, TOP, BOTTOM, LEFT, RIGHT };
+
+struct CollisionEvent {
+  CollisionDirection objCollisionDirection;
+  bapeObj *collidingObject;
+};
+
 extern std::vector<std::vector<Cell>> grid;
 
-CollisionDirection isCollision(const objBounds obj1, const objBounds obj2);
-std::vector<CollisionDirection> checkCellCollision(bapeObj *obj);
+CollisionDirection isCollision(bapeObj *bapeObj1, bapeObj *bapeObj2);
+std::vector<CollisionEvent> checkCellCollision(bapeObj *obj);
 void propagateGrid(int &currentFrame);
 void handleObjectReactions();
 

@@ -57,7 +57,7 @@ int main(void) {
                           raylib::Color{40, 40, 40, 255},
                           "borderBottom",
                           0};
-  bapeObj player = {400, 280, 40, 40, raylib::RED, "Player"};
+  bapeObj player = {400, 280, 40, 40, raylib::RED, "Player", 10};
   raylib::Camera2D camera;
   camera.target = raylib::Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
   camera.offset = raylib::Vector2(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f);
@@ -69,22 +69,22 @@ int main(void) {
 
     propagateGrid(currentFrame);
 
-    if (IsKeyDown(KEY_RIGHT)) {
+    if (IsKeyDown(KEY_D)) {
       if (player.horizontalVelocity < 300) {
         player.horizontalVelocity += 3;
       }
     }
-    if (IsKeyDown(KEY_LEFT)) {
+    if (IsKeyDown(KEY_A)) {
       if (player.horizontalVelocity > -300) {
         player.horizontalVelocity -= 3;
       }
     }
-    if (IsKeyDown(KEY_UP)) {
+    if (IsKeyDown(KEY_W)) {
       if (player.verticleVelocity < 300) {
         player.verticleVelocity += 3;
       }
     }
-    if (IsKeyDown(KEY_DOWN)) {
+    if (IsKeyDown(KEY_S)) {
       if (player.verticleVelocity > -300) {
         player.verticleVelocity -= 3;
       }

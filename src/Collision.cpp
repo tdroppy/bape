@@ -3,10 +3,11 @@
 #include <math.h>
 #include <unistd.h>
 #include <vector>
+#include <iostream>
 
-CollisionDirection isCollision(
-    const objBounds obj1,
-    const objBounds obj2) { // TODO: maybe handle collision handling in here?
+CollisionDirection isCollision(bapeObj *bapeObj1, bapeObj *bapeObj2) {
+  objBounds obj1 = bapeObj1->getPos();
+  objBounds obj2 = bapeObj2->getPos();
 
   bool collision =
       (obj1.leftSide < obj2.rightSide && obj1.rightSide > obj2.leftSide &&
@@ -22,21 +23,31 @@ CollisionDirection isCollision(
   float rcol = obj2.rightSide - obj1.leftSide;
 
   float mpen = std::min({tcol, bcol, lcol, rcol});
-  if (mpen == tcol)
-    return TOP;
-  if (mpen == bcol)
-    return BOTTOM;
-  if (mpen == lcol)
-    return LEFT;
-  if (mpen == rcol)
-    return RIGHT;
-
+  if (bapeObj1->getWeight() != 0) {
+    if (mpen == tcol) {
+      bapeObj1->forceMoveVertically(mpen);
+      return TOP;
+    }
+    if (mpen == bcol) {
+      bapeObj1->forceMoveVertically(-mpen);
+      return BOTTOM;
+    }
+    if (mpen == lcol) {
+      bapeObj1->forceMoveHorizontally(-mpen);
+      return LEFT;
+    }
+    if (mpen == rcol) {
+      bapeObj1->forceMoveHorizontally(mpen);
+      return RIGHT;
+    }
+    
+  }
   return NONE;
 }
 
-std::vector<CollisionDirection> checkCellCollision(bapeObj *obj) {
+std::vector<CollisionEvent> checkCellCollision(bapeObj *obj) {
   int count = 0;
-  std::vector<CollisionDirection> dlist;
+  std::vector<CollisionEvent> collisionList;
   objBounds bounds = obj->getPos();
 
   float objX = bounds.leftSide;
@@ -54,17 +65,17 @@ std::vector<CollisionDirection> checkCellCollision(bapeObj *obj) {
     for (int tempcy = cellY; tempcy <= cellMaxY; tempcy++) {
       for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
         if (obj != grid[tempcx][tempcy].cellObjects[i]) {
-          CollisionDirection col = isCollision(
-              obj->getPos(), grid[tempcx][tempcy].cellObjects[i]->getPos());
+          CollisionDirection col = isCollision(obj, grid[tempcx][tempcy].cellObjects[i]);
+          CollisionEvent pair = {col, grid[tempcx][tempcy].cellObjects[i]};
           if (col != NONE) {
-            dlist.push_back(col);
+            collisionList.push_back(pair);
           }
         }
       }
     }
   }
 
-  return dlist;
+  return collisionList;
 }
 
 void propagateGrid(int &currentFrame) {
@@ -97,31 +108,44 @@ void propagateGrid(int &currentFrame) {
   }
 }
 
-// TODO: accelerate inverted velocity when object is INSIDE another
+// TODO: fix left border phasing
 void handleObjectReactions() {
+  std::vector<bapeObj *> handledObjects;
   for (auto obj : bapeObj::objectList) {
-    std::vector<CollisionDirection> col = checkCellCollision(obj);
-    int weight = obj->getWeight();
-    if (std::find(col.begin(), col.end(), LEFT) != col.end()) {
-      if (weight != 0) {
-        obj->horizontalVelocity = (0 - (obj->horizontalVelocity + 3));
-        // obj->moveHorizontally(0 - (obj->horizontalVelocity));
-      }
-    }
-    if (std::find(col.begin(), col.end(), RIGHT) != col.end()) {
-      if (weight != 0) {
-        // obj->moveHorizontally(0 - (obj->horizontalVelocity));
-        obj->horizontalVelocity = (0 - (obj->horizontalVelocity - 3));
-      }
-    }
-    if (std::find(col.begin(), col.end(), TOP) != col.end()) {
-      if (weight != 0) {
-        obj->verticleVelocity = (0 - (obj->verticleVelocity + 3));
-      }
-    }
-    if (std::find(col.begin(), col.end(), BOTTOM) != col.end()) {
-      if (weight != 0) {
-        obj->verticleVelocity = (0 - (obj->verticleVelocity - 3));
+    std::vector<CollisionEvent> colEvent = checkCellCollision(obj);
+    
+    if (std::find(handledObjects.begin(), handledObjects.end(), obj) == handledObjects.end()) {
+      int weight = obj->getWeight();
+
+      for (auto event : colEvent) {
+        handledObjects.push_back(obj);
+        handledObjects.push_back(event.collidingObject);
+        
+        bapeObj* v1 = obj;
+        bapeObj* v2 = event.collidingObject;
+
+        float origV1 = v1->horizontalVelocity;
+        float origV2 = v2->horizontalVelocity;
+
+        float vorigV1 = v1->verticleVelocity;
+        float vorigV2 = v2->verticleVelocity;
+
+        switch (event.objCollisionDirection) {
+          case LEFT:
+          case RIGHT:
+            if (event.collidingObject->getWeight() != 0) {
+              obj->horizontalVelocity = ((v1->getWeight() - v2->getWeight()) * origV1 + 2 * v2->getWeight() * origV2) / (v2->getWeight() + v1->getWeight());
+              event.collidingObject->horizontalVelocity = ((v2->getWeight() - v1->getWeight()) * origV2 + 2 * v1->getWeight() * origV1) / (v1->getWeight() + v2->getWeight());
+            }
+            break;
+          case TOP:
+          case BOTTOM:
+            if (event.collidingObject->getWeight() != 0){
+              obj->verticleVelocity = ((v1->getWeight() - v2->getWeight()) * vorigV1 + 2 * v2->getWeight() * vorigV2) / (v2->getWeight() + v1->getWeight());
+              event.collidingObject->verticleVelocity = ((v2->getWeight() - v1->getWeight()) * vorigV2 + 2 * v1->getWeight() * vorigV1) / (v1->getWeight() + v2->getWeight());
+            }
+            break;
+        }
       }
     }
   }

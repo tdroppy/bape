@@ -48,6 +48,8 @@ public:
 
   void resetColorToDefault() { color = defColor; }
 
+  // move methods are for normal velocity control
+
   void moveHorizontally(float vel) {
     rect.x += vel * raylib::Window::GetFrameTime();
   }
@@ -60,6 +62,16 @@ public:
   }
   void moveVertically() {
     rect.y += ((0 - this->verticleVelocity) * raylib::Window::GetFrameTime());
+  }
+
+  // forceMove methods typically used for penetration correction, moves x and y statically
+
+  void forceMoveHorizontally(float changeX) {
+    rect.x += changeX;
+  }
+
+  void forceMoveVertically(float changeY) {
+    rect.y += changeY;
   }
 
   std::string getName() { return objectName; }
