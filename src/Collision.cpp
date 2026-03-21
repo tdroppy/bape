@@ -23,24 +23,49 @@ CollisionDirection isCollision(bapeObj *bapeObj1, bapeObj *bapeObj2) {
   float rcol = obj2.rightSide - obj1.leftSide;
 
   float mpen = std::min({tcol, bcol, lcol, rcol});
-  if (bapeObj1->getWeight() != 0) {
+  if (bapeObj2->getWeight() == 0 || bapeObj1->getWeight() == 0) { // I will reduce this at some point
     if (mpen == tcol) {
+      if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveVertically(mpen);
       return TOP;
     }
     if (mpen == bcol) {
+      if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveVertically(-mpen);
       return BOTTOM;
     }
     if (mpen == lcol) {
+      if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveHorizontally(-mpen);
       return LEFT;
     }
     if (mpen == rcol) {
+      if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveHorizontally(mpen);
       return RIGHT;
     }
-    
+  }
+  else {
+    if (mpen == tcol) {
+      bapeObj1->forceMoveVertically(mpen / 2);
+      bapeObj2->forceMoveVertically(-mpen / 2);
+      return TOP;
+    }
+    if (mpen == bcol) {
+      bapeObj1->forceMoveVertically(-mpen / 2);
+      bapeObj2->forceMoveVertically(mpen / 2);
+      return BOTTOM;
+    }
+    if (mpen == lcol) {
+      bapeObj1->forceMoveHorizontally(-mpen / 2);
+      bapeObj2->forceMoveHorizontally(mpen / 2);
+      return LEFT;
+    }
+    if (mpen == rcol) {
+      bapeObj1->forceMoveHorizontally(mpen / 2);
+      bapeObj2->forceMoveHorizontally(-mpen / 2);
+      return RIGHT;
+    }
   }
   return NONE;
 }
@@ -108,7 +133,6 @@ void propagateGrid(int &currentFrame) {
   }
 }
 
-// TODO: fix left border phasing
 void handleObjectReactions() {
   std::vector<bapeObj *> handledObjects;
   for (auto obj : bapeObj::objectList) {
@@ -120,6 +144,7 @@ void handleObjectReactions() {
       for (auto event : colEvent) {
         handledObjects.push_back(obj);
         handledObjects.push_back(event.collidingObject);
+
         
         bapeObj* v1 = obj;
         bapeObj* v2 = event.collidingObject;
@@ -133,16 +158,20 @@ void handleObjectReactions() {
         switch (event.objCollisionDirection) {
           case LEFT:
           case RIGHT:
-            if (event.collidingObject->getWeight() != 0) {
+            if (event.collidingObject->getWeight() != 0 && obj->getWeight() != 0) {
               obj->horizontalVelocity = ((v1->getWeight() - v2->getWeight()) * origV1 + 2 * v2->getWeight() * origV2) / (v2->getWeight() + v1->getWeight());
               event.collidingObject->horizontalVelocity = ((v2->getWeight() - v1->getWeight()) * origV2 + 2 * v1->getWeight() * origV1) / (v1->getWeight() + v2->getWeight());
+            } else {
+              obj->horizontalVelocity = -origV1;
             }
             break;
           case TOP:
           case BOTTOM:
-            if (event.collidingObject->getWeight() != 0){
+            if (event.collidingObject->getWeight() != 0 && obj->getWeight() != 0){
               obj->verticleVelocity = ((v1->getWeight() - v2->getWeight()) * vorigV1 + 2 * v2->getWeight() * vorigV2) / (v2->getWeight() + v1->getWeight());
               event.collidingObject->verticleVelocity = ((v2->getWeight() - v1->getWeight()) * vorigV2 + 2 * v1->getWeight() * vorigV1) / (v1->getWeight() + v2->getWeight());
+            } else {
+              obj->horizontalVelocity = -origV1;
             }
             break;
         }
