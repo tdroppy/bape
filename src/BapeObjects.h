@@ -7,6 +7,7 @@
 #include <string>
 #include <tuple>
 #include <unistd.h>
+#include <cstdlib>
 #include <vector>
 
 #define PLAYER_SPEED 350
@@ -99,6 +100,6 @@ public:
   }
 };
 
-int createRandomObj(bapeObj *plr, int count);
+int createRandomObj(bapeObj *plr, int count, int size);
 
 #endif

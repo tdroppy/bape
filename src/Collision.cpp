@@ -27,21 +27,25 @@ CollisionDirection isCollision(bapeObj *bapeObj1, bapeObj *bapeObj2) {
     if (mpen == tcol) {
       if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveVertically(mpen);
+      else bapeObj2->forceMoveVertically(mpen);
       return TOP;
     }
     if (mpen == bcol) {
       if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveVertically(-mpen);
+      else bapeObj2->forceMoveVertically(-mpen);
       return BOTTOM;
     }
     if (mpen == lcol) {
       if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveHorizontally(-mpen);
+      else bapeObj2->forceMoveHorizontally(-mpen);
       return LEFT;
     }
     if (mpen == rcol) {
       if (bapeObj1->getWeight() != 0)
       bapeObj1->forceMoveHorizontally(mpen);
+      else bapeObj2->forceMoveHorizontally(mpen);
       return RIGHT;
     }
   }
@@ -86,6 +90,11 @@ std::vector<CollisionEvent> checkCellCollision(bapeObj *obj) {
   int cellMaxX = (int)floor(objMaxX / CELL_SIZE);
   int cellMaxY = (int)floor(objMaxY / CELL_SIZE);
 
+  cellX = std::max(0, std::min(cellX, (int)grid.size() - 1));
+  cellMaxX = std::max(0, std::min(cellMaxX, (int)grid.size() - 1));
+  cellY = std::max(0, std::min(cellY, (int)grid[0].size() - 1));
+  cellMaxY = std::max(0, std::min(cellMaxY, (int)grid[0].size() - 1));
+
   for (int tempcx = cellX; tempcx <= cellMaxX; tempcx++) {
     for (int tempcy = cellY; tempcy <= cellMaxY; tempcy++) {
       for (int i = 0; i < grid[tempcx][tempcy].cellObjects.size(); i++) {
@@ -118,6 +127,11 @@ void propagateGrid(int &currentFrame) {
 
     int cellMaxX = (int)floor(objMaxX / CELL_SIZE);
     int cellMaxY = (int)floor(objMaxY / CELL_SIZE);
+
+    cellX = std::max(0, std::min(cellX, (int)grid.size() - 1));
+    cellMaxX = std::max(0, std::min(cellMaxX, (int)grid.size() - 1));
+    cellY = std::max(0, std::min(cellY, (int)grid[0].size() - 1));
+    cellMaxY = std::max(0, std::min(cellMaxY, (int)grid[0].size() - 1));
 
     for (int cx = cellX; cx <= cellMaxX; cx++) {
       for (int cy = cellY; cy <= cellMaxY; cy++) {
@@ -163,6 +177,7 @@ void handleObjectReactions() {
               event.collidingObject->horizontalVelocity = ((v2->getWeight() - v1->getWeight()) * origV2 + 2 * v1->getWeight() * origV1) / (v1->getWeight() + v2->getWeight());
             } else {
               obj->horizontalVelocity = -origV1;
+              event.collidingObject->horizontalVelocity = -origV2;
             }
             break;
           case TOP:
@@ -171,7 +186,8 @@ void handleObjectReactions() {
               obj->verticleVelocity = ((v1->getWeight() - v2->getWeight()) * vorigV1 + 2 * v2->getWeight() * vorigV2) / (v2->getWeight() + v1->getWeight());
               event.collidingObject->verticleVelocity = ((v2->getWeight() - v1->getWeight()) * vorigV2 + 2 * v1->getWeight() * vorigV1) / (v1->getWeight() + v2->getWeight());
             } else {
-              obj->horizontalVelocity = -origV1;
+              obj->verticleVelocity = -vorigV1;
+              event.collidingObject->verticleVelocity = -vorigV2;
             }
             break;
         }
